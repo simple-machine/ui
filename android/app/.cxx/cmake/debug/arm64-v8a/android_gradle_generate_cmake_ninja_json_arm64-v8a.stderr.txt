@@ -1,0 +1,5 @@
+CMake Error at CMakeLists.txt:3 (target_link_libraries):
+  Cannot specify link libraries for target "opencv_ventilator" which is not
+  built by this project.
+
+

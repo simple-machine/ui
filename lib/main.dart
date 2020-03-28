@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_opencv/opencv.dart' as cv;
 import 'package:camera/camera.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
+import 'package:native_lib/native_lib.dart';
 
 Future<void> main() async {
   // Ensure that plugin services are initialized so that `availableCameras()`
@@ -16,7 +18,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   final List<CameraDescription> cameras;
 
-  const MyApp({ Key key, @required this.cameras }) : super(key: key);
+  const MyApp({Key key, @required this.cameras}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -36,7 +38,7 @@ class BadgedIcon extends StatelessWidget {
   final IconData icon;
   final int counter;
 
-  const BadgedIcon({ Key key, @required this.icon, @required this.counter })
+  const BadgedIcon({Key key, @required this.icon, @required this.counter})
       : super(key: key);
 
   @override
@@ -44,9 +46,8 @@ class BadgedIcon extends StatelessWidget {
     if (counter == 0) {
       return Icon(icon);
     }
-    String badge = (counter >= 100) ? '99+' : (counter >= 50)
-        ? '50+'
-        : '$counter';
+    String badge =
+        (counter >= 100) ? '99+' : (counter >= 50) ? '50+' : '$counter';
     return Stack(
       children: <Widget>[
         Container(
@@ -95,6 +96,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   CameraController _controller;
   Future<void> _initializeControllerFuture;
+  DeviceList _devices;
 
   @override
   void initState() {
@@ -110,6 +112,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Next, initialize the controller. This returns a Future.
     _initializeControllerFuture = _controller.initialize();
+
+    _devices = NativeLib.listDevices();
+    print(_devices);
   }
 
   @override
@@ -123,6 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final int rotation = 0;
     final int remaining = 0;
+    final String a = _devices.get(1);
 
     return DefaultTabController(
       length: 3,
@@ -132,9 +138,10 @@ class _MyHomePageState extends State<MyHomePage> {
           bottom: TabBar(
             tabs: <Tab>[
               Tab(text: 'Home', icon: Icon(Icons.home)),
-              Tab(text: 'Alerts',
+              Tab(
+                  text: 'Alerts',
                   icon: BadgedIcon(icon: Icons.error, counter: 100)),
-              Tab(text: 'Settings', icon: Icon(Icons.settings)),
+              Tab(text: 'Settings $a', icon: Icon(Icons.settings)),
             ],
           ),
         ),
@@ -146,22 +153,49 @@ class _MyHomePageState extends State<MyHomePage> {
                   future: _initializeControllerFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.done) {
-                      final size = MediaQuery
-                          .of(context)
-                          .size;
+                      final size = MediaQuery.of(context).size;
                       print(size);
                       print(_controller.value.aspectRatio);
 
                       // If the Future is complete, display the preview.
-                      return Transform.scale(
-                        scale: _controller.value.aspectRatio / size.aspectRatio,
-                        child: Center(
-                          child: AspectRatio(
-                            aspectRatio: _controller.value.aspectRatio,
-                            child: CameraPreview(_controller),
-                          ),
-                        ),
-                      );
+                      return NativeDeviceOrientationReader(
+                          useSensor: true,
+                          builder: (context) {
+                            NativeDeviceOrientation orientation =
+                                NativeDeviceOrientationReader.orientation(
+                                    context);
+                            print("Received new orientation: $orientation");
+
+                            int turns;
+                            switch (orientation) {
+                              case NativeDeviceOrientation.landscapeLeft:
+                                turns = -1;
+                                break;
+                              case NativeDeviceOrientation.landscapeRight:
+                                turns = 1;
+                                break;
+                              case NativeDeviceOrientation.portraitDown:
+                                turns = 2;
+                                break;
+                              default:
+                                turns = 0;
+                                break;
+                            }
+
+							final aspectRatio = _controller.value.aspectRatio;
+                            return Transform.scale(
+                              scale: _controller.value.aspectRatio /
+                                  size.aspectRatio,
+                              child: Center(
+                                child: AspectRatio(
+                                  aspectRatio: _controller.value.aspectRatio,
+                                  child: RotatedBox(
+                                      quarterTurns: turns,
+                                      child: CameraPreview(_controller)),
+                                ),
+                              ),
+                            );
+                          });
                       // return Container(width: size.width, height: size.height, color: Colors.blue);
                     } else {
                       // Otherwise, display a loading indicator.
@@ -190,15 +224,13 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
             Center(
-              child:
-              Text(
+              child: Text(
                 'No alerts',
                 style: const TextStyle(fontSize: 36),
               ),
             ),
             Center(
-              child:
-              Text(
+              child: Text(
                 'No setting ?',
                 style: const TextStyle(fontSize: 36),
               ),

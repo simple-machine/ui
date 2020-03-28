@@ -5,19 +5,12 @@ import 'dart:ffi'; // For FFI
 import 'package:ffi/ffi.dart';
 import 'dart:io';
 
+// https://medium.com/flutter-community/using-ffi-on-flutter-plugins-to-run-native-rust-code-d64c0f14f9c2
 
 class NativeLib {
-  static const MethodChannel _channel = const MethodChannel('native_lib');
-
   static final DynamicLibrary nativeLib = Platform.isAndroid
       ? DynamicLibrary.open("libsmov.so")
       : DynamicLibrary.process();
-
-
-  static Future<String> get platformVersion async {
-    final String version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
-  }
 
   static DeviceList listDevices() {
     return new DeviceList(nativeLib);

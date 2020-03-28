@@ -22,9 +22,6 @@ dependencies:
 
   ffi:
 
-  native_lib:
-    path: native_lib
-
   flutter_opencv:
 
   camera:

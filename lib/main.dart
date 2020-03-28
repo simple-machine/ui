@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_opencv/opencv.dart' as cv;
 import 'package:camera/camera.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
-import 'package:native_lib/native_lib.dart';
+import 'native_lib.dart';
 
 Future<void> main() async {
   // Ensure that plugin services are initialized so that `availableCameras()`

@@ -1,5 +1,0 @@
-CMake Error at CMakeLists.txt:4 (target_link_libraries):
-  Cannot specify link libraries for target "native_lib" which is not built by
-  this project.
-
-

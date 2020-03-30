@@ -6,6 +6,7 @@ import 'package:ffi/ffi.dart';
 import 'dart:io';
 
 // https://medium.com/flutter-community/using-ffi-on-flutter-plugins-to-run-native-rust-code-d64c0f14f9c2
+// https://github.com/brickpop/flutter-rust-ffi
 
 class NativeLib {
   static final DynamicLibrary nativeLib = Platform.isAndroid

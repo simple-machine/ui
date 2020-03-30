@@ -1,8 +1,11 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_opencv/opencv.dart' as cv;
 import 'package:camera/camera.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 import 'native_lib.dart';
+import 'visualisation.dart';
 
 Future<void> main() async {
   // Ensure that plugin services are initialized so that `availableCameras()`
@@ -47,7 +50,7 @@ class BadgedIcon extends StatelessWidget {
       return Icon(icon);
     }
     String badge =
-        (counter >= 100) ? '99+' : (counter >= 50) ? '50+' : '$counter';
+    (counter >= 100) ? '99+' : (counter >= 50) ? '50+' : '$counter';
     return Stack(
       children: <Widget>[
         Container(
@@ -91,6 +94,13 @@ class MyHomePage extends StatefulWidget {
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
+}
+
+class Point {
+  final int x;
+  final int y;
+
+  Point(this.x, this.y);
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -137,10 +147,10 @@ class _MyHomePageState extends State<MyHomePage> {
           title: Text(widget.title),
           bottom: TabBar(
             tabs: <Tab>[
-              Tab(text: 'Home', icon: Icon(Icons.home)),
+              Tab(text: 'Camera', icon: Icon(Icons.camera)),
               Tab(
-                  text: 'Alerts',
-                  icon: BadgedIcon(icon: Icons.error, counter: 100)),
+                  text: 'Sensors',
+                  icon: BadgedIcon(icon: Icons.assessment, counter: 100)),
               Tab(text: 'Settings $a', icon: Icon(Icons.settings)),
             ],
           ),
@@ -149,89 +159,184 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Stack(
               children: [
+                Container(color: Colors.black),
                 FutureBuilder<void>(
                   future: _initializeControllerFuture,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.done) {
-                      final size = MediaQuery.of(context).size;
-                      print(size);
-                      print(_controller.value.aspectRatio);
-
-                      // If the Future is complete, display the preview.
-                      return NativeDeviceOrientationReader(
-                          useSensor: true,
-                          builder: (context) {
-                            NativeDeviceOrientation orientation =
-                                NativeDeviceOrientationReader.orientation(
-                                    context);
-                            print("Received new orientation: $orientation");
-
-                            int turns;
-                            switch (orientation) {
-                              case NativeDeviceOrientation.landscapeLeft:
-                                turns = -1;
-                                break;
-                              case NativeDeviceOrientation.landscapeRight:
-                                turns = 1;
-                                break;
-                              case NativeDeviceOrientation.portraitDown:
-                                turns = 2;
-                                break;
-                              default:
-                                turns = 0;
-                                break;
-                            }
-
-							final aspectRatio = _controller.value.aspectRatio;
-                            return Transform.scale(
-                              scale: _controller.value.aspectRatio /
-                                  size.aspectRatio,
-                              child: Center(
-                                child: AspectRatio(
-                                  aspectRatio: _controller.value.aspectRatio,
-                                  child: RotatedBox(
-                                      quarterTurns: turns,
-                                      child: CameraPreview(_controller)),
-                                ),
-                              ),
-                            );
-                          });
-                      // return Container(width: size.width, height: size.height, color: Colors.blue);
-                    } else {
-                      // Otherwise, display a loading indicator.
+                    if (snapshot.connectionState != ConnectionState.done) {
                       return Center(child: CircularProgressIndicator());
                     }
+                    final size = MediaQuery
+                        .of(context)
+                        .size;
+
+                    // If the Future is complete, display the preview.
+                    return NativeDeviceOrientationReader(
+                      useSensor: true,
+                      builder: (context) {
+                        NativeDeviceOrientation orientation =
+                        NativeDeviceOrientationReader.orientation(
+                            context);
+
+                        int turns;
+                        switch (orientation) {
+                          case NativeDeviceOrientation.landscapeLeft:
+                            turns = -1;
+                            break;
+                          case NativeDeviceOrientation.landscapeRight:
+                            turns = 1;
+                            break;
+                          case NativeDeviceOrientation.portraitDown:
+                            turns = 2;
+                            break;
+                          default:
+                            turns = 0;
+                            break;
+                        }
+                        Size imageSize = _controller.value.previewSize;
+                        double zoomIfVertical;
+                        double zoomIfHorizontal;
+                        if (turns % 2 == 1) {
+                          zoomIfVertical = size.width / imageSize.width;
+                          zoomIfHorizontal = size.height / imageSize.height;
+                        } else {
+                          zoomIfVertical = size.width / imageSize.height;
+                          zoomIfHorizontal = size.height / imageSize.width;
+                        }
+                        print('v: $zoomIfVertical, h: $zoomIfHorizontal');
+
+                        return Transform.scale(
+                          scale: min(1 / zoomIfVertical, 1 / zoomIfHorizontal),
+                          child: Center(
+                            child: RotatedBox(
+                              quarterTurns: turns,
+                              child: AspectRatio(
+                                aspectRatio: _controller.value.aspectRatio,
+                                child: CameraPreview(_controller),
+                              ),
+                            ),
+                          ),
+                        );
+                        /*return Container(color: Colors.green, constraints: BoxConstraints(
+                            maxHeight: size.height,
+                            maxWidth: size.width,
+                            minWidth: size.width,
+                            minHeight: size.height,
+                        ));*/
+                      });
                   },
                 ),
                 Positioned(
-                  left: 16,
-                  bottom: 0,
-                  child: Column(
-                    children: [
-                      Padding(
-                        child: Text('Rotation: $rotation°',
-                            style: const TextStyle(fontSize: 18)),
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                      ),
-                      Container(
-                        child: Text('Remaining: $remaining',
-                            style: const TextStyle(fontSize: 18)),
-                        padding: EdgeInsets.only(bottom: 16.0),
-                      ),
-                    ],
+                  left: 8,
+                  bottom: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(.5),
+                        borderRadius: BorderRadius.all(Radius.circular(8.0))
+                    ),
+                    child: Column(
+                      children: [
+                        Text('Rotation: $rotation°',
+                              style: const TextStyle(fontSize: 18)),
+                        new SizedBox(height: 8),
+                        Text('Remaining: $remaining',
+                              style: const TextStyle(fontSize: 18)),
+                      ],
+                    ),
                   ),
                 )
               ],
             ),
             Center(
-              child: Text(
-                'No alerts',
-                style: const TextStyle(fontSize: 36),
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.all(15.0),
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Pressure (mbar)',
+                            style: Theme
+                                .of(context)
+                                .textTheme
+                                .headline,
+                          ),
+                          new SizedBox(
+                            height: 200.0,
+                            child: TimeSeries.withSampleData(),
+                          ),
+                          Text(
+                            'Measure: 40 mbar',
+                            style: Theme
+                                .of(context)
+                                .textTheme
+                                .title,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Airflow (L/min)',
+                            style: Theme
+                                .of(context)
+                                .textTheme
+                                .headline,
+                          ),
+                          new SizedBox(
+                            height: 200.0,
+                            child: TimeSeries.withSampleData(),
+                          ),
+                          Text(
+                            'Measure: 40 L/min',
+                            style: Theme
+                                .of(context)
+                                .textTheme
+                                .title,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Plateau pressure (mbar)',
+                            style: Theme
+                                .of(context)
+                                .textTheme
+                                .headline,
+                          ),
+                          SizedBox(height: 16.0),
+                          Text(
+                            'Measure: 30 L/min',
+                            style: Theme
+                                .of(context)
+                                .textTheme
+                                .title,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Center(
               child: Text(
-                'No setting ?',
+                'No alerts',
                 style: const TextStyle(fontSize: 36),
               ),
             ),
@@ -240,4 +345,5 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
 }

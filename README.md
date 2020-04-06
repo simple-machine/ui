@@ -2,6 +2,10 @@
 
 Simple Machine&#x27;s Open Ventilator
 
+**You need to compile the `core` library and add the relevant files inside android/src/main/jniLibs and ios/**. See https://github.com/hanabi1224/flutter_native_extensions/blob/master/src/compression/gen_flutter_native_libs.sh for an example of how to proceed about that. You might also want to use symlinks if you are developping the core library.
+
+## This is a demo UI for the Mobile application
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

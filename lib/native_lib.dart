@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:usb_serial/usb_serial.dart';
+import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
 import 'dart:ffi'; // For FFI
@@ -34,6 +36,29 @@ class DeviceList {
     _inner = _listDevices();
     len = 0;
     while (_inner.elementAt(len) != Pointer.fromAddress(0)) len++;
+  }
+
+  void a(BuildContext ctx) async {
+    List<UsbDevice> devices = await UsbSerial.listDevices();
+
+    await showDialog<void>(
+      context: ctx,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Rewind and remember'),
+          content: Text('$devices'),
+          actions: <Widget>[
+            FlatButton(
+              child: Text('Regret'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String get(int idx) {

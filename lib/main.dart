@@ -4,8 +4,11 @@ import 'package:flutter_opencv/opencv.dart' as cv;
 import 'package:camera/camera.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+
 import 'native_lib.dart';
 import 'visualisation.dart';
+import 'settings.dart';
 
 Future<void> main() async {
   // Ensure that plugin services are initialized so that `availableCameras()`
@@ -107,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
   CameraController _controller;
   Future<void> _initializeControllerFuture;
   DeviceList _devices;
+  SettingsForm _settings;
 
   @override
   void initState() {
@@ -125,6 +129,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _devices = NativeLib.listDevices();
     print(_devices);
+    _settings = new SettingsForm(
+      onUpdate: (context) {
+        warn(context, 'bob');
+      }
+    );
   }
 
   @override
@@ -132,6 +141,31 @@ class _MyHomePageState extends State<MyHomePage> {
     // Dispose of the controller when the widget is disposed.
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> warn(BuildContext context, String msg) async {
+    await _devices.a(context);
+    FlutterRingtonePlayer.playAlarm(volume: 1.0);
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Major error'),
+          backgroundColor: Colors.red,
+          content: Text(msg),
+          actions: <Widget>[
+            FlatButton(
+              child: Text('I\'v check that everything is ok'),
+              onPressed: () {
+                FlutterRingtonePlayer.stop();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -238,10 +272,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Column(
                       children: [
                         Text('Rotation: $rotation°',
-                              style: const TextStyle(fontSize: 18)),
+                              style: Theme
+                                  .of(context)
+                                  .textTheme
+                                  .body2),
                         new SizedBox(height: 8),
-                        Text('Remaining: $remaining',
-                              style: const TextStyle(fontSize: 18)),
+                        Text('Pressure: $remaining mbar',
+                              style: Theme
+                                  .of(context)
+                                  .textTheme
+                                  .body2),
                       ],
                     ),
                   ),
@@ -334,13 +374,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-            Center(
-              child: Text(
-                'No alerts',
-                style: const TextStyle(fontSize: 36),
+            Center(child: Container(
+              padding: EdgeInsets.all(15.0),
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: _settings
+                ),
               ),
-            ),
+            )),
           ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            // Add your onPressed code here!
+          },
+          child: Icon(Icons.pause),
+          backgroundColor: Colors.green,
         ),
       ),
     );
